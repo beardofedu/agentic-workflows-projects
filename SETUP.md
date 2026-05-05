@@ -16,7 +16,7 @@ This was built in a single session using the **GitHub Copilot CLI** (`gh copilot
 | 5 sprint milestones | Sprint 1–5 with due dates |
 | 5 GitHub Project boards | One board per sprint, each linked to the repo with Status + Priority fields |
 | `demo.md` | Step-by-step presentation guide covering 6 demo scenarios |
-| GitHub Actions workflow | `sprint-impact-analysis.yml` — auto-detects cancelled/delayed issues and notifies downstream |
+| GitHub Actions workflow | `sprint-impact-analysis.md` (+ compiled `.lock.yml`) — auto-detects cancelled/delayed issues, flags blocked downstream work, and auto-closes directly blocked issues when dependencies are cancelled |
 | Copilot prompt template | `inspect-delay.prompt.md` — reusable structured impact analysis prompt |
 
 ---
@@ -248,7 +248,7 @@ This opens a browser device-flow authorization. You will see a one-time code —
 
 Three files committed together:
 
-**`.github/workflows/sprint-impact-analysis.yml`**  
+**`.github/workflows/sprint-impact-analysis.md`**  
 GitHub Actions workflow that:
 - Triggers on `issues.closed` (where `state_reason == 'not_planned'`), `issues.demilestoned`, or `workflow_dispatch`
 - Fetches all open issues and parses `## Depends On` sections to build a reverse-dependency map
@@ -256,6 +256,7 @@ GitHub Actions workflow that:
 - Calls GitHub Models (`gpt-4o-mini`) to generate a human-readable impact summary
 - Posts idempotent `⚠️ Sprint Impact Alert` comments on every downstream issue
 - Adds the `blocked` label to each impacted issue
+- Auto-closes directly blocked issues when their dependency is cancelled (transitively blocked issues are flagged and remain open)
 - Writes a structured summary table to the Actions run summary page
 
 **`.github/prompts/inspect-delay.prompt.md`**  
@@ -312,5 +313,6 @@ agentic-workflows-projects/
     ├── prompts/
     │   └── inspect-delay.prompt.md     # Reusable Copilot Chat prompt template
     └── workflows/
-        └── sprint-impact-analysis.yml  # Agentic impact detection workflow
+        ├── sprint-impact-analysis.md  # Agentic workflow source
+        └── sprint-impact-analysis.lock.yml  # Compiled workflow
 ```
