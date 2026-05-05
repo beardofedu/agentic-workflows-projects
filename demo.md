@@ -11,7 +11,7 @@ A step-by-step walkthrough demonstrating GitHub Copilot's agentic capabilities u
 | Live app | [GitHub Pages](https://beardofedu.github.io/agentic-workflows-projects/) |
 | 24 backlog issues | [Issues tab](../../issues) — tagged with sprint labels and inter-dependencies |
 | 5 sprint boards | [Projects tab](../../projects) — Sprint 1 through Sprint 5 |
-| Impact workflow | [`.github/workflows/sprint-impact-analysis.yml`](.github/workflows/sprint-impact-analysis.yml) |
+| Impact workflow | [`.github/workflows/sprint-impact-analysis.md`](.github/workflows/sprint-impact-analysis.md) |
 | Delay prompt template | [`.github/prompts/inspect-delay.prompt.md`](.github/prompts/inspect-delay.prompt.md) |
 
 ### The Dependency Chain (the star of the show)
@@ -177,7 +177,7 @@ Try `#5 AUTH-001` (User Login):
 
 **What this shows:** A GitHub Actions workflow that automatically detects when an issue is cancelled or removed from a sprint, traverses the dependency graph, and notifies every downstream issue — with an AI-written impact summary.
 
-**Workflow file:** [`.github/workflows/sprint-impact-analysis.yml`](.github/workflows/sprint-impact-analysis.yml)
+**Workflow file:** [`.github/workflows/sprint-impact-analysis.md`](.github/workflows/sprint-impact-analysis.md)
 
 ### How it works
 
