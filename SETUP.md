@@ -248,22 +248,122 @@ This opens a browser device-flow authorization. You will see a one-time code —
 
 Three files committed together:
 
-**`.github/workflows/sprint-impact-analysis.md`**  
-GitHub Actions workflow that:
-- Triggers on `issues.closed` (where `state_reason == 'not_planned'`), `issues.demilestoned`, or `workflow_dispatch`
-- Fetches all open issues and parses `## Depends On` sections to build a reverse-dependency map
-- Runs BFS traversal to find all transitively impacted issues
-- Calls GitHub Models (`gpt-4o-mini`) to generate a human-readable impact summary
-- Posts idempotent `⚠️ Sprint Impact Alert` comments on every downstream issue
-- Adds the `blocked` label to each impacted issue
-- Auto-closes directly blocked issues when their dependency is cancelled (transitively blocked issues are flagged and remain open)
-- Writes a structured summary table to the Actions run summary page
-
 **`.github/prompts/inspect-delay.prompt.md`**  
 A fill-in-the-blanks Copilot Chat prompt template that produces a standardized 5-section impact report (blast radius, sprint-by-sprint impact, critical path, recommendations, quick wins).
 
 **`demo.md`**  
 A full presentation guide with 6 demo scenarios, timing guide, presenter tips, and reset instructions.
+
+**`.github/workflows/sprint-impact-analysis.yml`** *(initial version — replaced in Step 6)*  
+A standard GitHub Actions workflow using `actions/github-script` to traverse the dependency graph and post comments. This was later replaced with a proper gh-aw agentic workflow (see Step 6).
+
+---
+
+### Step 6 — Convert the Workflow to a Proper GitHub Agentic Workflow
+
+> **Prompt used (exact):**
+>
+> *"can you update the SETUP.md file to retroactively fix the workflow to be a proper agentic workflow based on this issue: https://github.com/beardofedu/agentic-workflows-projects/issues/27?"*
+
+Issue #27 noted that the original `sprint-impact-analysis.yml` was a standard `github-script` workflow, not a true **GitHub Agentic Workflow**. The key differences:
+
+| | Old approach | Proper gh-aw approach |
+|---|---|---|
+| Engine | `actions/github-script` (Node.js code) | GitHub Copilot AI agent |
+| GitHub API reads | Direct `github.rest.*` calls in JS | GitHub MCP toolsets (`tools: github:`) |
+| GitHub writes (comments, labels) | `issues: write` permission on job | `safe-outputs:` with no write permission on agent job |
+| Dependency traversal | Hardcoded BFS in JavaScript | Agent reasons through the graph using natural language instructions |
+| Impact narrative | `gpt-4o-mini` API call via `fetch()` | Native to the agent (Copilot generates it inline) |
+| Workflow file format | YAML only | Markdown with YAML frontmatter + compiled `.lock.yml` |
+
+**Why this matters:** In the gh-aw model, the agent job must be **strictly read-only**. All write operations (comments, labels, issue closures) go through the `safe-outputs` system, which enforces rate limits and audit trails and protects against runaway or compromised AI behaviour. Granting `issues: write` directly on the agent job (as the old approach did) bypasses these safeguards.
+
+This step was completed by the **Copilot Coding Agent** — issue #27 was assigned to Copilot, which opened PR #28 with the gh-aw conversion, iterated on the prompt based on review comments, and merged.
+
+#### Prerequisites
+
+Install and verify the `gh-aw` CLI extension:
+```bash
+gh aw version 2>/dev/null || curl -sL https://raw.githubusercontent.com/github/gh-aw/main/install-gh-aw.sh | bash
+gh extension upgrade aw
+```
+
+#### What Copilot did
+
+1. **Removed** the old `sprint-impact-analysis.yml` (standard Actions workflow)
+
+2. **Scaffolded** a new gh-aw workflow:
+   ```bash
+   gh aw new sprint-impact-analysis
+   # Creates .github/workflows/sprint-impact-analysis.md
+   ```
+
+3. **Wrote the workflow file** (`.github/workflows/sprint-impact-analysis.md`) with:
+   - YAML frontmatter configuring triggers, read-only permissions, GitHub MCP toolsets, and safe-outputs
+   - A Markdown body containing the agent's natural language instructions for dependency traversal, impact notification, and optional issue closure
+
+   Key frontmatter (the part that requires recompilation when changed):
+   ```yaml
+   on:
+     issues:
+       types: [closed, demilestoned]
+     workflow_dispatch:
+       inputs:
+         issue_number: { required: true, type: number }
+         scenario: { default: cancelled, type: choice, options: [cancelled, delayed] }
+
+   permissions:         # agent job is strictly read-only
+     contents: read
+     issues: read
+     pull-requests: read
+
+   tools:
+     github:
+       toolsets: [default]   # MCP server for all GitHub API reads
+
+   safe-outputs:        # controlled write channels — the only way the agent writes
+     add-comment:
+       max: 100
+     add-labels:
+       max: 100
+     close-issue:
+       max: 100
+   ```
+
+   The Markdown body instructs the agent to:
+   - Identify the trigger issue and scenario type
+   - Fetch all open issues via the GitHub MCP toolset
+   - Parse `## Depends On` sections and build a reverse-dependency map
+   - Perform BFS to find all transitively impacted issues
+   - Compose a concise impact narrative
+   - Post idempotent impact alert comments via `add-comment` safe output
+   - Apply the `blocked` label via `add-labels` safe output
+   - Optionally close directly-blocked issues via `close-issue` safe output when the scenario is `cancelled`
+
+4. **Compiled** the workflow to generate the Actions lock file:
+   ```bash
+   gh aw compile sprint-impact-analysis
+   # Creates .github/workflows/sprint-impact-analysis.lock.yml
+   ```
+
+5. **Added `.gitattributes`** so the lock file is treated as generated code:
+   ```bash
+   echo '.github/workflows/*.lock.yml linguist-generated=true merge=ours' > .gitattributes
+   ```
+
+6. **Committed** the three files:
+   ```bash
+   git add .gitattributes \
+     .github/workflows/sprint-impact-analysis.md \
+     .github/workflows/sprint-impact-analysis.lock.yml
+   git rm .github/workflows/sprint-impact-analysis.yml
+   git commit -m "Replace github-script workflow with proper gh-aw agentic workflow"
+   git push
+   ```
+
+#### Important note on the Markdown body
+
+The Markdown body of a gh-aw workflow (everything after the closing `---`) can be edited **directly on GitHub.com without recompiling**. It is loaded at runtime, so prompt improvements take effect on the next run. Only changes to the YAML frontmatter (triggers, permissions, tools, safe-outputs) require running `gh aw compile` again.
 
 ---
 
@@ -273,29 +373,27 @@ A full presentation guide with 6 demo scenarios, timing guide, presenter tips, a
 Replace the TechMart product catalog in `app.js` (`PRODUCTS` array and `STUB_INFO` map) with your own application's features and stubs.
 
 ### Change the dependency structure
-The workflow reads `## Depends On` sections from issue bodies. As long as your issues include that section with `#N` references, the graph traversal works automatically. No code changes needed.
+The workflow reads `## Depends On` sections from issue bodies. As long as your issues include that section with `#N` references, the graph traversal works automatically. Edit only the Markdown body of `sprint-impact-analysis.md` on GitHub.com — no recompilation needed.
 
 ### Change the sprint count
 Create as many or as few project boards and milestones as needed. The workflow is sprint-agnostic — it reads milestone names directly from issue data.
 
 ### Make the workflow update project board Status
-By default, the workflow adds the `blocked` label but does not update the GitHub Projects v2 Status field (this requires a GitHub App or PAT with `project` scope, which `GITHUB_TOKEN` in Actions does not cover). To add this:
-1. Create a GitHub App or PAT with `project` scope
-2. Store it as a repository secret (e.g., `PROJECT_TOKEN`)
-3. Add a GraphQL mutation step after the comment loop using that token
+By default, the workflow adds the `blocked` label but does not update the GitHub Projects v2 Status field (this requires a GitHub App or PAT with `project` scope, which `GITHUB_TOKEN` in Actions does not cover). To add this, extend the gh-aw workflow's `safe-outputs` section with a custom job that calls the Projects v2 GraphQL API using a stored secret, then recompile with `gh aw compile`.
 
 ---
 
 ## Total Time to Build
 
-The entire repository — web app, 24 issues, labels, milestones, 5 project boards, workflow, and demo guide — was built in a single Copilot CLI session of approximately **65 minutes**, including the `project` scope authentication step.
+The entire repository — web app, 24 issues, labels, milestones, 5 project boards, agentic workflow, and demo guide — was built in a single Copilot CLI session of approximately **75 minutes**.
 
 | Phase | Approximate time |
 |---|---|
 | Web app (Step 2) | ~5 min |
 | Issues + labels + milestones (Step 3) | ~15 min |
 | Project boards + field setup + issue population (Step 4) | ~25 min (includes auth) |
-| Demo guide + workflow + prompt template (Step 5) | ~20 min |
+| Demo guide + initial workflow + prompt template (Step 5) | ~20 min |
+| gh-aw workflow conversion via Copilot Coding Agent (Step 6) | ~10 min |
 
 ---
 
@@ -303,16 +401,18 @@ The entire repository — web app, 24 issues, labels, milestones, 5 project boar
 
 ```
 agentic-workflows-projects/
-├── index.html                          # TechMart store (GitHub Pages)
-├── style.css                           # Responsive stylesheet
-├── app.js                              # Product catalog, cart, stub modals
-├── demo.md                             # Presentation walkthrough (6 scenarios)
-├── SETUP.md                            # This file — replication guide
-├── README.md                           # Project overview
+├── index.html                               # TechMart store (GitHub Pages)
+├── style.css                                # Responsive stylesheet
+├── app.js                                   # Product catalog, cart, stub modals
+├── demo.md                                  # Presentation walkthrough (6 scenarios)
+├── SETUP.md                                 # This file — replication guide
+├── README.md                                # Project overview
+├── .gitattributes                           # Marks lock files as linguist-generated
 └── .github/
     ├── prompts/
-    │   └── inspect-delay.prompt.md     # Reusable Copilot Chat prompt template
+    │   └── inspect-delay.prompt.md          # Reusable Copilot Chat prompt template
     └── workflows/
-        ├── sprint-impact-analysis.md  # Agentic workflow source
-        └── sprint-impact-analysis.lock.yml  # Compiled workflow
+        ├── sprint-impact-analysis.md        # Agentic workflow (gh-aw markdown source — edit this)
+        ├── sprint-impact-analysis.lock.yml  # Compiled Actions workflow (do not edit directly)
+        └── reset-demo.yml                   # Helper workflow to reset demo state between runs
 ```
