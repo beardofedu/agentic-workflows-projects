@@ -1,0 +1,117 @@
+name: Reset Demo State
+
+# Manually triggered workflow to reset the repository to a clean demo state.
+# Removes sprint-impact-bot comments, clears 'blocked' labels, and reopens
+# any issues closed as "not planned" during a demo run.
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  reset:
+    name: Reset Repository for Fresh Demo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Remove impact comments, blocked labels, and reopen demo issues
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            // ── 1. Fetch every issue (open AND closed) ──────────────────────────
+            let allIssues = [];
+            let page = 1;
+            while (true) {
+              const { data: batch } = await github.rest.issues.listForRepo({
+                owner, repo,
+                state: 'all',
+                per_page: 100,
+                page,
+              });
+              if (batch.length === 0) break;
+              allIssues = allIssues.concat(batch);
+              page++;
+            }
+            core.info(`Fetched ${allIssues.length} total issues`);
+
+            // Filter out pull requests (GitHub returns PRs in issue list)
+            const issues = allIssues.filter((i) => !i.pull_request);
+
+            // ── 2. For each issue: delete sprint-impact-bot comments ────────────
+            const MARKER_PREFIX = '<!-- sprint-impact-bot:';
+            let deletedComments = 0;
+            let removedLabels   = 0;
+            let reopenedIssues  = 0;
+
+            for (const issue of issues) {
+              // 2a. Delete sprint-impact-bot comments
+              let commentPage = 1;
+              while (true) {
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner, repo,
+                  issue_number: issue.number,
+                  per_page: 100,
+                  page: commentPage,
+                });
+                if (comments.length === 0) break;
+
+                for (const comment of comments) {
+                  if (comment.body?.includes(MARKER_PREFIX)) {
+                    await github.rest.issues.deleteComment({
+                      owner, repo,
+                      comment_id: comment.id,
+                    });
+                    core.info(`Deleted comment ${comment.id} from #${issue.number}`);
+                    deletedComments++;
+                  }
+                }
+                commentPage++;
+              }
+
+              // 2b. Remove 'blocked' label if present
+              const hasBlocked = issue.labels.some((l) => l.name === 'blocked');
+              if (hasBlocked) {
+                await github.rest.issues.removeLabel({
+                  owner, repo,
+                  issue_number: issue.number,
+                  name: 'blocked',
+                }).catch((e) => core.debug(`Label remove failed for #${issue.number}: ${e.message}`));
+                core.info(`Removed 'blocked' label from #${issue.number}`);
+                removedLabels++;
+              }
+
+              // 2c. Reopen issues that were closed as "not planned" during the demo
+              if (issue.state === 'closed' && issue.state_reason === 'not_planned') {
+                await github.rest.issues.update({
+                  owner, repo,
+                  issue_number: issue.number,
+                  state: 'open',
+                });
+                core.info(`Reopened #${issue.number}: ${issue.title}`);
+                reopenedIssues++;
+              }
+            }
+
+            // ── 3. Summary ──────────────────────────────────────────────────────
+            core.info(`Reset complete — deleted ${deletedComments} comment(s), removed ${removedLabels} 'blocked' label(s), reopened ${reopenedIssues} issue(s).`);
+
+            await core.summary
+              .addHeading('Demo Reset Complete ✅')
+              .addTable([
+                [
+                  { data: 'Action',  header: true },
+                  { data: 'Count',   header: true },
+                ],
+                ['Sprint-impact comments deleted', String(deletedComments)],
+                ["'blocked' labels removed",       String(removedLabels)],
+                ['Issues reopened',                String(reopenedIssues)],
+              ])
+              .addRaw('\nThe repository is ready for a fresh demo run.')
+              .write();
