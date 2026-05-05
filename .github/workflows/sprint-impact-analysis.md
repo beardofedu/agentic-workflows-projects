@@ -71,7 +71,7 @@ For every impacted issue:
    - whether the source issue was cancelled or delayed,
    - whether the impacted issue is direct or transitive,
    - a short actionable recommendation.
-4. If the scenario is **cancelled** and the issue is **directly blocked**, add the comment first and then close the issue because its dependency is no longer planned. Make the comment explicitly state this as a dependency-driven `not planned` closure.
+4. If the scenario is **cancelled** and the issue is **directly blocked**, post a comment that explicitly says the issue is being closed due to a dependency-driven `not planned` outcome, then close the issue.
 5. Do not duplicate comments if the marker for the same source issue already exists.
 
 ## Comment tone and format

@@ -256,7 +256,7 @@ GitHub Actions workflow that:
 - Calls GitHub Models (`gpt-4o-mini`) to generate a human-readable impact summary
 - Posts idempotent `⚠️ Sprint Impact Alert` comments on every downstream issue
 - Adds the `blocked` label to each impacted issue
-- Auto-closes directly blocked issues when their dependency is cancelled
+- Auto-closes directly blocked issues when their dependency is cancelled (transitively blocked issues are flagged and remain open)
 - Writes a structured summary table to the Actions run summary page
 
 **`.github/prompts/inspect-delay.prompt.md`**  
