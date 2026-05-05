@@ -175,7 +175,7 @@ Try `#5 AUTH-001` (User Login):
 
 ## Demo D — Automated Agentic Workflow: Real-time Impact Detection
 
-**What this shows:** A GitHub Actions workflow that automatically detects when an issue is cancelled or removed from a sprint, traverses the dependency graph, and notifies every downstream issue — with an AI-written impact summary.
+**What this shows:** A GitHub Actions workflow that automatically detects when an issue is cancelled or removed from a sprint, traverses the dependency graph, flags impacted downstream work, and auto-closes directly blocked issues when a dependency is cancelled.
 
 **Workflow file:** [`.github/workflows/sprint-impact-analysis.md`](.github/workflows/sprint-impact-analysis.md)
 
@@ -204,6 +204,7 @@ Manual workflow_dispatch       ──▶  workflow triggers (for demos)
   For each impacted issue:
     • Post idempotent comment with sprint impact alert
     • Add "blocked" label
+    • If cancelled + direct dependency, close issue as stuck
          │
          ▼
   Write structured summary to Actions workflow run page
