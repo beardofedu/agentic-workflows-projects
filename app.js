@@ -14,7 +14,9 @@ const CACHE_KEY = 'tm_catalog_v1';
 let cart = [];
 let currentFilter = 'all';
 
-// ===== SEARCH INDEX (pre-built at page load and memoized) =====
+// ===== SEARCH INDEX (pre-built at page load and memoized per PERF-001 AC#3) =====
+// The index is infrastructure for SEARCH-001 (#16). When that feature ships,
+// call buildSearchIndex() to get an inverted-index map of token → Set<productId>.
 let _searchIndex = null;
 
 function buildSearchIndex() {
@@ -42,7 +44,7 @@ function renderProducts(filter = 'all') {
     const filtered = filter === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === filter);
     const html = filtered.map(productCard).join('');
     grid.innerHTML = html;
-    try { sessionStorage.setItem(cacheKey, html); } catch (_) { /* quota exceeded — ignore */ }
+    try { sessionStorage.setItem(cacheKey, html); } catch (e) { console.warn('SessionStorage quota exceeded — catalog cache skipped:', e); }
   }
 
   initProductObserver();
