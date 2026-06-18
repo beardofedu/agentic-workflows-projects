@@ -3,8 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="TechMart – curated gadgets, accessories, and smart devices delivered to your door. Shop phones, audio, wearables, and accessories." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#6366f1" />
   <title>TechMart – Your Gadget Store</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- Critical CSS inlined for zero-FOUC above-the-fold rendering -->
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--primary:#6366f1;--primary-dark:#4f46e5;--primary-light:#e0e7ff;--accent:#f59e0b;--text:#111827;--text-muted:#6b7280;--bg:#f9fafb;--bg-alt:#f3f4f6;--surface:#ffffff;--border:#e5e7eb;--danger:#ef4444;--success:#22c55e;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.06);--shadow-lg:0 8px 24px rgba(0,0,0,.12)}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+    .container{max-width:1200px;margin:0 auto;padding:0 1.5rem}
+    a{color:inherit;text-decoration:none}
+    .btn-primary{background:var(--primary);color:#fff;border:none;padding:.65rem 1.4rem;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s,transform .1s}
+    .btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px)}
+    .btn-ghost{background:transparent;color:var(--primary);border:1.5px solid var(--primary);padding:.6rem 1.3rem;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s}
+    .btn-ghost:hover{background:var(--primary-light)}
+    .site-header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.06)}
+    .header-inner{display:flex;align-items:center;gap:2rem;padding-top:.9rem;padding-bottom:.9rem}
+    .logo{font-size:1.4rem;font-weight:800;color:var(--primary);letter-spacing:-.5px}
+    .nav{display:flex;align-items:center;gap:1.5rem;margin-left:auto}
+    .nav a{font-weight:500;color:var(--text-muted);transition:color .15s}
+    .nav a:hover{color:var(--primary)}
+    .cart-btn{background:var(--primary-light);border:none;border-radius:8px;padding:.5rem .9rem;font-size:1rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;font-weight:600;transition:background .15s}
+    .cart-btn:hover{background:#c7d2fe}
+    .cart-count{background:var(--primary);color:#fff;border-radius:999px;padding:0 .45rem;font-size:.75rem;font-weight:700}
+    .hero{background:linear-gradient(135deg,#eef2ff 0%,#f5f3ff 60%,#ede9fe 100%);padding:5rem 0 4rem}
+    .hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+    .badge{display:inline-block;background:var(--accent);color:#fff;font-size:.75rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.25rem .7rem;border-radius:999px;margin-bottom:1rem}
+    .hero-text h1{font-size:2.8rem;font-weight:800;line-height:1.15;margin-bottom:1rem}
+    .hero-text p{font-size:1.1rem;color:var(--text-muted);margin-bottom:1.8rem}
+    .hero-cta{display:flex;gap:1rem}
+    .hero-image{display:flex;justify-content:center}
+    .product-card-hero{background:var(--surface);border-radius:20px;padding:2rem;box-shadow:var(--shadow-lg);text-align:center;min-width:200px}
+    .product-img-placeholder{font-size:4rem;display:flex;align-items:center;justify-content:center;background:var(--bg-alt);border-radius:12px;margin-bottom:1rem}
+    .product-img-placeholder.large{font-size:6rem;padding:1.5rem;height:200px;width:200px}
+    .hero-card-label{font-weight:700;font-size:1.1rem}
+    .hero-card-price{color:var(--primary);font-weight:800;font-size:1.3rem;margin-top:.25rem}
+    .features{background:var(--primary);color:#fff;padding:1rem 0}
+    .features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;text-align:center;padding:.5rem 0}
+    .feature-item{font-size:.9rem}
+    .feature-item strong{display:block;margin-top:.2rem}
+    @media(max-width:900px){.hero-inner{grid-template-columns:1fr}.hero-image{display:none}.features-grid{grid-template-columns:1fr 1fr;gap:.75rem}}
+    @media(max-width:600px){.hero-text h1{font-size:2rem}.nav a{display:none}}
+  </style>
+
+  <!-- Non-critical CSS loaded asynchronously to unblock rendering -->
+  <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="style.css"></noscript>
 </head>
 <body>
 
@@ -18,7 +64,7 @@
         <a href="#about">About</a>
         <button class="btn-ghost" onclick="showStub('Login / Sign Up')">Sign In</button>
       </nav>
-      <button class="cart-btn" onclick="showStub('Shopping Cart')">
+      <button class="cart-btn" aria-label="View cart" onclick="showStub('Shopping Cart')">
         🛒 <span class="cart-count" id="cartCount">0</span>
       </button>
     </div>
@@ -100,7 +146,7 @@
   </section>
 
   <!-- ===== REVIEWS (stub) ===== -->
-  <section class="section section-alt">
+  <section class="section section-alt" id="reviews-section">
     <div class="container">
       <div class="section-header">
         <h2>Customer Reviews</h2>
@@ -176,7 +222,7 @@
 
   <!-- ===== STUB MODAL ===== -->
   <div class="modal-overlay" id="stubModal" onclick="closeModal()">
-    <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1" onclick="event.stopPropagation()">
       <div class="modal-icon">🚧</div>
       <h3 id="modalTitle">Feature Not Yet Implemented</h3>
       <p id="modalBody">This feature is on the backlog and hasn't been built yet.</p>
@@ -185,6 +231,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
